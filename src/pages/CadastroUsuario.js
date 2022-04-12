@@ -1,14 +1,15 @@
 import React from "react";
 import { Formik, Field, Form, ErrorMessage } from "formik";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useUser } from "../hooks/useUser";
+import { useSWRConfig } from "swr";
 
 import './CadastroUsuario.css'
-import { useSWRConfig } from "swr";
 
 const CadastroUsuario = () => {
   const { data, mutate } = useUser('users');
-  const {mutate: mutateUsuario} = useSWRConfig();
+  const { mutate: mutateUsuario } = useSWRConfig();
+  const navigate = useNavigate();
 
   if (!data) {
     return <p>Carregando...</p>
@@ -19,6 +20,7 @@ const CadastroUsuario = () => {
     if (!values.nome) {
       errors.nome = 'O campo nome é obrigatório';
     }
+
     if (!values.email) {
       errors.email = 'O campo e-mail é obrigatório';
     } else if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}$/i.test(values.email)) {
@@ -28,11 +30,18 @@ const CadastroUsuario = () => {
     if (!values.senha) {
       errors.senha = 'O campo senha é obrigatório';
     }
+
     if (!values.confirmacaoSenha) {
       errors.confirmacaoSenha = 'O campo confirmação de senha é obrigatório';
     } else if (values.senha != values.confirmacaoSenha) {
       errors.confirmacaoSenha = 'As senhas precisam ser iguais';
     }
+
+    data.map(user => {
+      if (user.email === values.email) {
+        errors.email = 'O email informado já está cadastrado no sitema';
+      }
+    });
 
     return errors;
   }
@@ -46,16 +55,19 @@ const CadastroUsuario = () => {
           nome: '',
           email: '',
           senha: '',
-          confirmacaoSenha: '',
+          confirmacaoSenha: ''
         }}
+
         onSubmit={(values) => {
 
           //mutate(novosUsuarios, false);
 
-          const novoUsuario = {...values, id:Math.random(), name: values.nome}
+          const novoUsuario = { ...values, id: Math.random(), name: values.nome, estado: 'desativado' }
 
           mutate((data) => [...data, novoUsuario], false);
           mutateUsuario(`users/${novoUsuario.id}`, novoUsuario, false);
+
+          navigate('/lista');
         }}
 
         validate={validate}
